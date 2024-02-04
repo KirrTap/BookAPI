@@ -14,7 +14,7 @@ const BookAPI = "https://openlibrary.org/search.json?q=%s"
 
 type AuthorBook struct {
 	Docs []struct {
-		AuthorName 					     []string `json:"author_name"`
+		AuthorName 					     []string `json:"author_name,omitempty"`
 		Title                            string   `json:"title"`
 		PublishDate                      []string `json:"publish_date,omitempty"`
 		EditionCount                     int      `json:"edition_count"`
