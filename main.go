@@ -82,17 +82,17 @@ func main(){
 	}
 
 	var authorNames []string
-	var keyField []string
-	
+	authorMap := make(map[string]string)
+
 	for _, author := range authorKey.Authors {
 		authorKey := strings.TrimPrefix(author.Author.Key, "/authors/")
-		keyField = append(keyField, authorKey) //pridanie kluca autora do pola
 		name, errorKey := getAuthorName(authorKey)
 		if errorKey != nil {
 			fmt.Println("Error getting author name:", errorKey)
 			continue
 		}
 		authorNames = append(authorNames, name)
+		authorMap[authorKey] = name
 		
 	}
 
@@ -107,11 +107,11 @@ func main(){
 		})
 	}
 	
-	for i, name := range authorNames {
-		authorKey := keyField[i]
+	for _, name := range authorNames {
+		authorKey := getKeyFromMap(authorMap, name)
 		myStruct := MyOutput{}
 		myStruct.Author.AuthorName = name
-
+		
 		yamlAuthorName, errorAuthorName := yaml.Marshal(myStruct.Author)
 		if errorAuthorName != nil {
 			fmt.Println("Error marshaling MyStruct to YAML ", errorAuthorName)
@@ -229,4 +229,12 @@ func getBookInfo(authorKey string, sortOrder string) ([]BookInfo, error) {
 	return BookInfo.Docs, nil
 }
 
+func getKeyFromMap(Map map[string]string, name string) string {
+    for key, value := range Map {
+        if value == name {
+            return key
+        }
+    }
+    return ""
+}
 
