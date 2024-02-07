@@ -14,10 +14,9 @@ import (
 
 //APIs
 const (
-	findAuthorKeyPI = "https://openlibrary.org/works/%s.json" //APi na najdenie kluca autora
-	findAuthorNameAPI = "https://openlibrary.org/authors/%s.json" //API na najdenie mena autora
+	findAuthorKeyPI        = "https://openlibrary.org/works/%s.json"          //APi na najdenie kluca autora
+	findAuthorNameAPI      = "https://openlibrary.org/authors/%s.json"         //API na najdenie mena autora
 	findAuthorBooksInfoAPI = "https://openlibrary.org/search.json?author_key=%s&fields=author_name,title,first_publish_year,isbn,edition_count" //API na najdenie informacii o knihach autora
-		
 )
 
 // struktura pre ziskanie kluca autora
@@ -38,25 +37,26 @@ type AuthorName struct {
 type BookInfo struct {
 	Title           string   `json:"title"`
 	FirstPublishYear int      `json:"first_publish_year"`
-	Isbn             []string `json:"isbn"`
-	EditionCount     int      `json:"edition_count"`
+	Isbn            []string `json:"isbn"`
+	EditionCount    int      `json:"edition_count"`
 }
 
 // moja struktura na vypis informacii
 type MyOutput struct {
-	Author struct{
-		AuthorName string `json:"author_name"`
-	} `json:"author"`
-	Books struct {
-		Title           string   `json:"title"`
-		FirstPublishYear int      `json:"first_publish_year"`
-		Isbn             []string `json:"isbn"`
-		EditionCount     int      `json:"edition_count"`
-	} `json:"books"`
+	Docs []struct {
+		Author struct {
+			AuthorName string `json:"author_name"`
+		} `json:"author"`
+		Books []struct {
+			Title           string   `json:"title"`
+			FirstPublishYear int      `json:"first_publish_year"`
+			Isbn            []string `json:"isbn"`
+			EditionCount    int      `json:"edition_count"`
+		} `json:"books"`
+	}
 }
 
-
-func main(){
+func main() {
 	//nacitanie parametrov
 	bookKey := flag.String("key", "", "Book key")  // napr OL27448W  OL18146933W OL27370133W
 	sortOrder := flag.String("sort", "", "Sort order (asc or desc)")
@@ -67,7 +67,7 @@ func main(){
 		fmt.Println("Error: Specify book key with -key.")
 		return
 	}
-	
+
 	//kontrola ci je zadany parameter -sort
 	if *sortOrder != "" && *sortOrder != "asc" && *sortOrder != "desc" {
 		fmt.Println("Error: You need to specify a valid sort order -sort (asc or desc).")
@@ -93,7 +93,7 @@ func main(){
 		}
 		authorNames = append(authorNames, name)
 		authorMap[authorKey] = name
-		
+
 	}
 
 	//zoradenie mien autorov podla abecedy asc alebo desc
@@ -106,18 +106,24 @@ func main(){
 			return authorNames[i] > authorNames[j]
 		})
 	}
-	
+
+	myOutput := MyOutput{}
+
 	for _, name := range authorNames {
 		authorKey := getKeyFromMap(authorMap, name)
-		myStruct := MyOutput{}
-		myStruct.Author.AuthorName = name
-		
-		yamlAuthorName, errorAuthorName := yaml.Marshal(myStruct.Author)
-		if errorAuthorName != nil {
-			fmt.Println("Error marshaling MyStruct to YAML ", errorAuthorName)
-			continue
-		}
-		fmt.Println(string(yamlAuthorName))
+		doc := struct {
+			Author struct {
+				AuthorName string `json:"author_name"`
+			} `json:"author"`
+			Books []struct {
+				Title           string   `json:"title"`
+				FirstPublishYear int      `json:"first_publish_year"`
+				Isbn            []string `json:"isbn"`
+				EditionCount    int      `json:"edition_count"`
+			} `json:"books"`
+		}{}
+
+		doc.Author.AuthorName = name
 
 		bookInfo, errorBookInfo := getBookInfo(authorKey, *sortOrder)
 		if errorBookInfo != nil {
@@ -130,28 +136,31 @@ func main(){
 				book.Isbn = []string{"ISBN not found"}
 			}
 
-			myStruct.Books = struct {
+			doc.Books = append(doc.Books, struct {
 				Title           string   `json:"title"`
 				FirstPublishYear int      `json:"first_publish_year"`
-				Isbn             []string `json:"isbn"`
-				EditionCount     int      `json:"edition_count"`
+				Isbn            []string `json:"isbn"`
+				EditionCount    int      `json:"edition_count"`
 			}{
-			Title:          book.Title,
-			FirstPublishYear: book.FirstPublishYear,
-			Isbn:            book.Isbn,
-			EditionCount:    book.EditionCount,
-			}
-
-			yamlBookInfo, errorBookInfo := yaml.Marshal(myStruct.Books)
-			if errorBookInfo != nil {
-				fmt.Println("Error marshaling MyStruct to YAML:", errorBookInfo)
-				continue
-			}
-			fmt.Println(string(yamlBookInfo))
+				Title:           book.Title,
+				FirstPublishYear: book.FirstPublishYear,
+				Isbn:            book.Isbn,
+				EditionCount:    book.EditionCount,
+			})
 
 		}
 
+		myOutput.Docs = append(myOutput.Docs, doc)
+
 	}
+
+	yamlData, err := yaml.Marshal(myOutput)
+	if err != nil {
+		fmt.Println("Error marshaling MyStruct to YAML:", err)
+		return
+	}
+	fmt.Println(string(yamlData))
+
 }	
 
 
