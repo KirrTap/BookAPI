@@ -29,7 +29,7 @@ type AuthorKey struct {
 	} `json:"authors"`
 }
 
-// struct pre ziskanie mena autora
+// struktura  pre ziskanie mena autora
 type AuthorName struct {
 	Name string `json:"name"`
 }
@@ -229,6 +229,7 @@ func getBookInfo(authorKey string, sortOrder string) ([]BookInfo, error) {
 	return BookInfo.Docs, nil
 }
 
+//funcia na ziskanie kluca z mapy
 func getKeyFromMap(Map map[string]string, name string) string {
     for key, value := range Map {
         if value == name {
